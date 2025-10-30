@@ -164,22 +164,42 @@ class TCrossUserTable {
     /**
      * 獲取特定類型的所有用戶
      */
-    public static function get_users_by_type($user_type, $limit = 50, $offset = 0) {
+    public static function get_users_by_type($user_type, $limit = 50, $offset = 0, $status = 'active') {
         global $wpdb;
 
         $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT ut.*, u.display_name, u.user_email, u.user_registered 
-                 FROM $table_name ut 
-                 LEFT JOIN {$wpdb->users} u ON ut.user_id = u.ID 
-                 WHERE ut.user_type = %s AND ut.status = 'active' 
-                 ORDER BY ut.registration_date DESC 
-                 LIMIT %d OFFSET %d",
-                $user_type, $limit, $offset
-            )
-        );
+        // 建立查詢條件
+        $where_clauses = array();
+        $params = array();
+
+        // 用戶類型篩選
+        if ($user_type !== 'all' && !empty($user_type)) {
+            $where_clauses[] = "ut.user_type = %s";
+            $params[] = $user_type;
+        }
+
+        // 狀態篩選
+        if ($status !== 'all' && !empty($status)) {
+            $where_clauses[] = "ut.status = %s";
+            $params[] = $status;
+        }
+
+        // 組合 WHERE 條件
+        $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+        // 添加 LIMIT 和 OFFSET 參數
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $sql = "SELECT ut.*, u.display_name, u.user_email, u.user_login, u.user_registered
+                FROM $table_name ut
+                LEFT JOIN {$wpdb->users} u ON ut.user_id = u.ID
+                $where_sql
+                ORDER BY ut.registration_date DESC
+                LIMIT %d OFFSET %d";
+
+        $results = $wpdb->get_results($wpdb->prepare($sql, $params));
 
         foreach ($results as $result) {
             $result->additional_data = maybe_unserialize($result->additional_data);

@@ -772,32 +772,46 @@ public function manual_process_submission() {
     public function export_users() {
         if (!$this->verify_admin_permission()) return;
 
-        $params = $this->get_request_params(
-            array('user_type' => 'text'),
-            array('format' => array('type' => 'text', 'default' => 'csv'))
-        );
+        // 支援 export_user_type 和 user_type 兩種參數名稱（向後相容）
+        $user_type = isset($_REQUEST['export_user_type']) ? sanitize_text_field($_REQUEST['export_user_type']) :
+                    (isset($_REQUEST['user_type']) ? sanitize_text_field($_REQUEST['user_type']) : 'all');
 
-        if ($params === false) return;
+        $status = isset($_REQUEST['export_status']) ? sanitize_text_field($_REQUEST['export_status']) : 'all';
+        $format = isset($_REQUEST['export_format']) ? sanitize_text_field($_REQUEST['export_format']) :
+                 (isset($_REQUEST['format']) ? sanitize_text_field($_REQUEST['format']) : 'csv');
 
-        $users = TCrossUserTable::get_users_by_type($params['user_type'], 9999);
+        // 獲取用戶資料，支援類型和狀態篩選
+        $users = TCrossUserTable::get_users_by_type($user_type, 9999, 0, $status);
 
-        if ($params['format'] === 'csv') {
-            $this->export_to_csv($users, $params['user_type']);
-        } elseif ($params['format'] === 'json') {
-            $this->export_to_json($users, $params['user_type']);
+        if ($format === 'csv') {
+            $this->export_to_csv($users, $user_type, $status);
+        } elseif ($format === 'json') {
+            $this->export_to_json($users, $user_type, $status);
         }
     }
 
     /**
      * 匯出為 CSV
      */
-    private function export_to_csv($users, $user_type) {
-        $filename = 'tcross_users_' . $user_type . '_' . date('Y-m-d') . '.csv';
+    private function export_to_csv($users, $user_type, $status = 'all') {
+        // 建立檔案名稱
+        $filename_parts = array('tcross_users');
+        if ($user_type !== 'all') {
+            $filename_parts[] = $user_type;
+        }
+        if ($status !== 'all') {
+            $filename_parts[] = $status;
+        }
+        $filename_parts[] = date('Y-m-d');
+        $filename = implode('_', $filename_parts) . '.csv';
 
-        header('Content-Type: text/csv');
+        header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $output = fopen('php://output', 'w');
+
+        // 添加 BOM 以支援 Excel 正確顯示中文
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
         // CSV 標題
         fputcsv($output, array(
@@ -826,15 +840,25 @@ public function manual_process_submission() {
     /**
      * 匯出為 JSON
      */
-    private function export_to_json($users, $user_type) {
-        $filename = 'tcross_users_' . $user_type . '_' . date('Y-m-d') . '.json';
+    private function export_to_json($users, $user_type, $status = 'all') {
+        // 建立檔案名稱
+        $filename_parts = array('tcross_users');
+        if ($user_type !== 'all') {
+            $filename_parts[] = $user_type;
+        }
+        if ($status !== 'all') {
+            $filename_parts[] = $status;
+        }
+        $filename_parts[] = date('Y-m-d');
+        $filename = implode('_', $filename_parts) . '.json';
 
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $export_data = array(
             'export_date' => current_time('mysql'),
             'user_type' => $user_type,
+            'status' => $status,
             'total_users' => count($users),
             'users' => $users
         );
