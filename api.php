@@ -780,20 +780,23 @@ public function manual_process_submission() {
         $format = isset($_REQUEST['export_format']) ? sanitize_text_field($_REQUEST['export_format']) :
                  (isset($_REQUEST['format']) ? sanitize_text_field($_REQUEST['format']) : 'csv');
 
+        // 是否包含表單資料
+        $include_form_data = isset($_REQUEST['include_form_data']) && $_REQUEST['include_form_data'] === '1';
+
         // 獲取用戶資料，支援類型和狀態篩選
-        $users = TCrossUserTable::get_users_by_type($user_type, 9999, 0, $status);
+        $users = TCrossUserTable::get_users_by_type($user_type, 9999, 0, $status, $include_form_data);
 
         if ($format === 'csv') {
-            $this->export_to_csv($users, $user_type, $status);
+            $this->export_to_csv($users, $user_type, $status, $include_form_data);
         } elseif ($format === 'json') {
-            $this->export_to_json($users, $user_type, $status);
+            $this->export_to_json($users, $user_type, $status, $include_form_data);
         }
     }
 
     /**
      * 匯出為 CSV
      */
-    private function export_to_csv($users, $user_type, $status = 'all') {
+    private function export_to_csv($users, $user_type, $status = 'all', $include_form_data = false) {
         // 建立檔案名稱
         $filename_parts = array('tcross_users');
         if ($user_type !== 'all') {
@@ -801,6 +804,9 @@ public function manual_process_submission() {
         }
         if ($status !== 'all') {
             $filename_parts[] = $status;
+        }
+        if ($include_form_data) {
+            $filename_parts[] = 'with_form_data';
         }
         $filename_parts[] = date('Y-m-d');
         $filename = implode('_', $filename_parts) . '.csv';
@@ -813,15 +819,36 @@ public function manual_process_submission() {
         // 添加 BOM 以支援 Excel 正確顯示中文
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-        // CSV 標題
-        fputcsv($output, array(
+        // 基本 CSV 標題
+        $headers = array(
             'ID', '用戶名', '顯示名稱', '電子郵件', '用戶類型',
             '註冊日期', '狀態', '最後更新'
-        ));
+        );
+
+        // 如果包含表單資料，收集所有可能的表單欄位
+        $form_fields = array();
+        if ($include_form_data && !empty($users)) {
+            // 收集所有用戶的表單欄位（合併所有可能的欄位）
+            foreach ($users as $user) {
+                if (!empty($user->form_data) && is_array($user->form_data)) {
+                    foreach ($user->form_data as $field_key => $field_data) {
+                        if (!isset($form_fields[$field_key]) && isset($field_data['label'])) {
+                            $form_fields[$field_key] = $field_data['label'];
+                        }
+                    }
+                }
+            }
+
+            // 將表單欄位標籤加入標題
+            $headers = array_merge($headers, array_values($form_fields));
+        }
+
+        // 輸出標題行
+        fputcsv($output, $headers);
 
         // 數據行
         foreach ($users as $user) {
-            fputcsv($output, array(
+            $row = array(
                 $user->user_id,
                 $user->user_login ?: '',
                 $user->display_name ?: '',
@@ -830,7 +857,20 @@ public function manual_process_submission() {
                 $user->registration_date,
                 $user->status,
                 $user->updated_at
-            ));
+            );
+
+            // 如果包含表單資料，加入表單欄位值
+            if ($include_form_data && !empty($form_fields)) {
+                foreach (array_keys($form_fields) as $field_key) {
+                    $value = '';
+                    if (!empty($user->form_data) && isset($user->form_data[$field_key])) {
+                        $value = $user->form_data[$field_key]['value'] ?? '';
+                    }
+                    $row[] = $value;
+                }
+            }
+
+            fputcsv($output, $row);
         }
 
         fclose($output);
@@ -840,7 +880,7 @@ public function manual_process_submission() {
     /**
      * 匯出為 JSON
      */
-    private function export_to_json($users, $user_type, $status = 'all') {
+    private function export_to_json($users, $user_type, $status = 'all', $include_form_data = false) {
         // 建立檔案名稱
         $filename_parts = array('tcross_users');
         if ($user_type !== 'all') {
@@ -848,6 +888,9 @@ public function manual_process_submission() {
         }
         if ($status !== 'all') {
             $filename_parts[] = $status;
+        }
+        if ($include_form_data) {
+            $filename_parts[] = 'with_form_data';
         }
         $filename_parts[] = date('Y-m-d');
         $filename = implode('_', $filename_parts) . '.json';
@@ -859,6 +902,7 @@ public function manual_process_submission() {
             'export_date' => current_time('mysql'),
             'user_type' => $user_type,
             'status' => $status,
+            'include_form_data' => $include_form_data,
             'total_users' => count($users),
             'users' => $users
         );

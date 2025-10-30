@@ -164,7 +164,7 @@ class TCrossUserTable {
     /**
      * 獲取特定類型的所有用戶
      */
-    public static function get_users_by_type($user_type, $limit = 50, $offset = 0, $status = 'active') {
+    public static function get_users_by_type($user_type, $limit = 50, $offset = 0, $status = 'active', $include_form_data = false) {
         global $wpdb;
 
         $table_name = $wpdb->prefix . self::TABLE_NAME;
@@ -203,6 +203,11 @@ class TCrossUserTable {
 
         foreach ($results as $result) {
             $result->additional_data = maybe_unserialize($result->additional_data);
+
+            // 如果需要包含表單資料，則獲取最新的表單提交
+            if ($include_form_data) {
+                $result->form_data = self::get_user_latest_form_data($result->user_id, $result->user_type);
+            }
         }
 
         return $results;
@@ -461,6 +466,47 @@ public static function search_users($search_term, $user_type = '', $limit = 50, 
         }
 
         return $results;
+    }
+
+    /**
+     * 獲取用戶的最新表單資料
+     */
+    public static function get_user_latest_form_data($user_id, $user_type = '') {
+        global $wpdb;
+
+        $elementor_table = $wpdb->prefix . 'e_submissions';
+
+        // 根據用戶類型確定 post_id
+        $post_id_condition = '';
+        if ($user_type === 'green_teacher') {
+            $post_id_condition = "AND e.post_id = 1254";
+        } elseif ($user_type === 'demand_unit') {
+            $post_id_condition = "AND e.post_id = 1325";
+        } else {
+            $post_id_condition = "AND e.post_id IN (1254, 1325)";
+        }
+
+        // 獲取用戶最新的表單提交
+        $submission = $wpdb->get_row($wpdb->prepare(
+            "SELECT e.id, e.post_id, e.created_at,
+                    CASE
+                        WHEN e.post_id = 1254 THEN 'green_teacher'
+                        WHEN e.post_id = 1325 THEN 'demand_unit'
+                        ELSE 'unknown'
+                    END as user_type
+             FROM $elementor_table e
+             WHERE e.user_id = %d $post_id_condition
+             ORDER BY e.created_at DESC
+             LIMIT 1",
+            $user_id
+        ));
+
+        if (!$submission) {
+            return null;
+        }
+
+        // 獲取表單詳細資料
+        return self::get_elementor_submission_data($submission->id, $submission->user_type, false);
     }
 
     /**

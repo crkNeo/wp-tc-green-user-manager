@@ -378,6 +378,16 @@ class TCrossAdminPage {
                             </select>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">包含表單資料</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="include_form_data" value="1">
+                                包含用戶填寫的表單詳細資料（學經歷、專長、證照等）
+                            </label>
+                            <p class="description">勾選此選項將會包含用戶提交的完整表單資料，檔案會較大但資訊更完整。</p>
+                        </td>
+                    </tr>
                 </table>
 
                 <p class="submit">
