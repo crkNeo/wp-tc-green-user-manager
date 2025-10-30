@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCross 註冊視窗測試</title>
+    <link rel="stylesheet" href="assets/css/registration-modal.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-form {
+            background: #f9f9f9;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .user-type-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .user-type-btn {
+            padding: 12px 25px;
+            border: 2px solid #0073aa;
+            background: #fff;
+            color: #0073aa;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .user-type-btn:hover {
+            background: #0073aa;
+            color: white;
+        }
+        
+        .user-type-btn.selected {
+            background: #0073aa;
+            color: white;
+        }
+        
+        .register-btn {
+            background: #46b450;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .register-btn:hover {
+            background: #369e3f;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        @media (max-width: 480px) {
+            .user-type-buttons {
+                flex-direction: column;
+            }
+            
+            .user-type-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 TCross 註冊確認視窗測試</h1>
+        
+        <div class="info-box">
+            <strong>測試說明：</strong>
+            <p>這是一個獨立的測試頁面，用來驗證註冊確認視窗的功能。請按照以下步驟測試：</p>
+            <ol>
+                <li>選擇註冊類型（需求單位或綠照師）</li>
+                <li>點擊註冊按鈕</li>
+                <li>查看確認視窗是否正確顯示</li>
+                <li>測試確認和取消功能</li>
+            </ol>
+        </div>
+
+        <div class="test-form">
+            <h3>模擬註冊表單</h3>
+            
+            <div class="form-group">
+                <label for="username">用戶名稱</label>
+                <input type="text" id="username" name="username" placeholder="請輸入用戶名稱" value="測試用戶">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">電子郵件</label>
+                <input type="email" id="email" name="email" placeholder="請輸入電子郵件" value="test@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密碼</label>
+                <input type="password" id="password" name="password" placeholder="請輸入密碼" value="123456">
+            </div>
+
+            <div class="form-group">
+                <label>選擇註冊類型</label>
+                <div class="user-type-buttons">
+                    <button type="button" class="user-type-btn" data-type="demand_unit">
+                        註冊需求單位
+                    </button>
+                    <button type="button" class="user-type-btn" data-type="green_teacher">
+                        註冊綠照師
+                    </button>
+                </div>
+                <div id="type-selection-error" style="color: red; display: none;">請選擇註冊類型</div>
+            </div>
+
+            <input type="hidden" id="tcross-user-type" name="tcross_user_type" value="">
+
+            <button type="button" class="register-btn" id="test-register-btn">註冊</button>
+        </div>
+
+        <div class="warning-box">
+            <strong>注意：</strong>這是測試頁面，不會執行真正的註冊操作，僅用於測試視窗顯示效果。
+        </div>
+
+        <div class="test-container">
+            <h3>其他測試功能</h3>
+            <p>
+                <button type="button" class="register-btn" onclick="showTestModal()">直接顯示測試視窗</button>
+                <button type="button" class="user-type-btn" onclick="showCustomModal()" style="margin-left: 10px;">自定義內容測試</button>
+            </p>
+            
+            <div id="test-results" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- 註冊確認視窗 -->
+    <div id="tcross-registration-modal" class="tcross-registration-modal">
+        <div class="tcross-modal-content">
+            <div class="tcross-modal-header">
+                <h3 id="tcross-modal-title">註冊確認</h3>
+                <span class="tcross-modal-close">&times;</span>
+            </div>
+            <div class="tcross-modal-body">
+                <div id="tcross-modal-content">
+                    <h4>請仔細閱讀以下注意事項：</h4>
+                    <ul>
+                        <li>請確保您提供的資料真實有效</li>
+                        <li>註冊後您將收到確認郵件，請檢查您的信箱</li>
+                        <li>如有任何問題，請聯繫客服人員</li>
+                        <li>註冊即表示您同意我們的服務條款和隱私政策</li>
+                    </ul>
+                    <p><strong>確認後將完成註冊程序。</strong></p>
+                </div>
+            </div>
+            <div class="tcross-modal-footer">
+                <button type="button" class="tcross-modal-btn tcross-modal-btn-cancel" id="tcross-modal-cancel">取消</button>
+                <button type="button" class="tcross-modal-btn tcross-modal-btn-confirm" id="tcross-modal-confirm">確認註冊</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模擬 jQuery（簡化版）
+        if (typeof jQuery === 'undefined') {
+            window.jQuery = window.$ = function(selector) {
+                if (typeof selector === 'function') {
+                    document.addEventListener('DOMContentLoaded', selector);
+                    return;
+                }
+                
+                let elements = [];
+                if (typeof selector === 'string') {
+                    elements = Array.from(document.querySelectorAll(selector));
+                } else if (selector.nodeType) {
+                    elements = [selector];
+                }
+                
+                elements.on = function(event, handler) {
+                    elements.forEach(el => el.addEventListener(event, handler));
+                    return elements;
+                };
+                
+                elements.addClass = function(className) {
+                    elements.forEach(el => el.classList.add(className));
+                    return elements;
+                };
+                
+                elements.removeClass = function(className) {
+                    elements.forEach(el => el.classList.remove(className));
+                    return elements;
+                };
+                
+                elements.val = function(value) {
+                    if (value !== undefined) {
+                        elements.forEach(el => el.value = value);
+                        return elements;
+                    }
+                    return elements[0] ? elements[0].value : '';
+                };
+                
+                elements.text = function(text) {
+                    if (text !== undefined) {
+                        elements.forEach(el => el.textContent = text);
+                        return elements;
+                    }
+                    return elements[0] ? elements[0].textContent : '';
+                };
+                
+                elements.html = function(html) {
+                    if (html !== undefined) {
+                        elements.forEach(el => el.innerHTML = html);
+                        return elements;
+                    }
+                    return elements[0] ? elements[0].innerHTML : '';
+                };
+                
+                elements.css = function(prop, value) {
+                    if (typeof prop === 'object') {
+                        elements.forEach(el => Object.assign(el.style, prop));
+                    } else if (value !== undefined) {
+                        elements.forEach(el => el.style[prop] = value);
+                    }
+                    return elements;
+                };
+                
+                elements.show = function() {
+                    elements.forEach(el => el.style.display = '');
+                    return elements;
+                };
+                
+                elements.hide = function() {
+                    elements.forEach(el => el.style.display = 'none');
+                    return elements;
+                };
+                
+                elements.data = function(key, value) {
+                    if (value !== undefined) {
+                        elements.forEach(el => el.dataset[key] = value);
+                        return elements;
+                    }
+                    return elements[0] ? elements[0].dataset[key] : undefined;
+                };
+                
+                return elements;
+            };
+        }
+
+        // 初始化測試功能
+        $(function() {
+            console.log('TCross 註冊視窗測試頁面載入完成');
+            
+            // 用戶類型選擇
+            $('.user-type-btn').on('click', function() {
+                $('.user-type-btn').removeClass('selected');
+                $(this).addClass('selected');
+                $('#tcross-user-type').val($(this).data('type'));
+                $('#type-selection-error').hide();
+                
+                logTest('選擇用戶類型: ' + $(this).data('type'));
+            });
+            
+            // 模態視窗關閉
+            $('.tcross-modal-close, #tcross-modal-cancel').on('click', function() {
+                hideModal();
+            });
+            
+            // 確認註冊
+            $('#tcross-modal-confirm').on('click', function() {
+                confirmRegistration();
+            });
+            
+            // 註冊按鈕
+            $('#test-register-btn').on('click', function() {
+                var userType = $('#tcross-user-type').val();
+                
+                if (!userType) {
+                    $('#type-selection-error').show().text('請先選擇註冊類型');
+                    logTest('錯誤: 未選擇用戶類型', 'error');
+                    return;
+                }
+                
+                logTest('攔截註冊表單，顯示確認視窗');
+                showModal();
+            });
+            
+            // ESC 鍵關閉
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('#tcross-registration-modal').hasClass('show')) {
+                    hideModal();
+                }
+            });
+            
+            // 點擊背景關閉
+            $('#tcross-registration-modal').on('click', function(e) {
+                if (e.target === this) {
+                    hideModal();
+                }
+            });
+        });
+        
+        function showModal() {
+            $('#tcross-registration-modal').addClass('show');
+            $('body').css('overflow', 'hidden');
+            logTest('顯示註冊確認視窗');
+        }
+        
+        function hideModal() {
+            $('#tcross-registration-modal').removeClass('show').addClass('closing');
+            setTimeout(function() {
+                $('#tcross-registration-modal').removeClass('closing');
+                $('body').css('overflow', '');
+            }, 300);
+            logTest('關閉註冊確認視窗');
+        }
+        
+        function confirmRegistration() {
+            logTest('用戶確認註冊');
+            $('#tcross-modal-confirm').text('處理中...').css('opacity', '0.7');
+            
+            setTimeout(function() {
+                hideModal();
+                showSuccessMessage();
+                $('#tcross-modal-confirm').text('確認註冊').css('opacity', '1');
+            }, 1500);
+        }
+        
+        function showTestModal() {
+            $('#tcross-modal-title').text('測試視窗');
+            var testContent = '<h4>這是測試視窗</h4>' +
+                '<p>這個視窗展示了基本的顯示和互動功能。</p>' +
+                '<ul>' +
+                '<li>響應式設計</li>' +
+                '<li>流暢動畫效果</li>' +
+                '<li>鍵盤和滑鼠操作支援</li>' +
+                '</ul>';
+            $('#tcross-modal-content').html(testContent);
+            showModal();
+            logTest('顯示測試視窗');
+        }
+        
+        function showCustomModal() {
+            $('#tcross-modal-title').text('自定義內容測試');
+            var customContent = [
+                '<div style="text-align: center;">',
+                '<h4 style="color: #0073aa;">🎉 自定義內容示例</h4>',
+                '<p>這裡可以放置任何 HTML 內容：</p>',
+                '<div style="background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 10px 0;">',
+                '<strong>重要提醒：</strong><br>',
+                '請確認您的電子郵件地址正確，以便接收重要通知。',
+                '</div>',
+                '<p style="color: #666; font-size: 14px;">支援圖片、連結、表格等各種元素</p>',
+                '</div>'
+            ].join('');
+            $('#tcross-modal-content').html(customContent);
+            showModal();
+            logTest('顯示自定義內容視窗');
+        }
+        
+        function showSuccessMessage() {
+            var successHtml = '<div class="success-box">' +
+                '<strong>✅ 註冊成功！</strong>' +
+                '<p>這是模擬的成功訊息。在實際應用中，這裡會顯示真正的註冊結果。</p>' +
+                '</div>';
+            
+            $('#test-results').html(successHtml);
+            logTest('顯示成功訊息', 'success');
+        }
+        
+        function logTest(message, type = 'info') {
+            var time = new Date().toLocaleTimeString();
+            var color = type === 'error' ? '#dc3232' : type === 'success' ? '#46b450' : '#666';
+            var icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            
+            console.log(`[${time}] TCross Test: ${message}`);
+            
+            var logHtml = `<div style="color: ${color}; font-size: 14px; margin: 5px 0;">
+                ${icon} [${time}] ${message}
+            </div>`;
+            
+            var currentLogs = $('#test-results').html();
+            $('#test-results').html(logHtml + currentLogs);
+        }
+    </script>
+</body>
+</html>
