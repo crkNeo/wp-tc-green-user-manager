@@ -510,10 +510,33 @@ public function manual_process_submission() {
         return;
     }
 
-    $user_type = 'green_teacher';
-    $post_id = 1254;
+    // 先從 Elementor 表查詢這個提交記錄，以確定用戶類型
+    global $wpdb;
+    $elementor_table = $wpdb->prefix . 'e_submissions';
+    $elementor_record = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $elementor_table WHERE id = %d",
+        $submission_id
+    ));
 
-    error_log("TCross Manual: Processing submission {$submission_id} for user {$current_user_id}");
+    if (!$elementor_record) {
+        wp_send_json_error('找不到 Elementor 提交記錄 ID: ' . $submission_id);
+        return;
+    }
+
+    // 根據 post_id 判斷用戶類型
+    $user_type = null;
+    $post_id = $elementor_record->post_id;
+
+    if ($post_id == 1254) {
+        $user_type = 'green_teacher';
+    } elseif ($post_id == 1325) {
+        $user_type = 'demand_unit';
+    } else {
+        wp_send_json_error('未知的表單類型 post_id: ' . $post_id);
+        return;
+    }
+
+    error_log("TCross Manual: Processing submission {$submission_id} for user {$current_user_id}, type: {$user_type}, post_id: {$post_id}");
 
     try {
         // 直接調用 TCrossUserStatus::createSubmissionRecord
@@ -527,7 +550,7 @@ public function manual_process_submission() {
 
         if ($result) {
             error_log("TCross Manual: Success - created record with ID {$result}");
-            wp_send_json_success("處理成功，創建記錄 ID: {$result}");
+            wp_send_json_success("處理成功，創建記錄 ID: {$result}，用戶類型: {$user_type}");
         } else {
             error_log("TCross Manual: Failed - createSubmissionRecord returned false");
             wp_send_json_error('TCrossUserStatus::createSubmissionRecord 返回 false');
