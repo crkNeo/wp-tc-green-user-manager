@@ -1321,15 +1321,9 @@ public function update_submission_status() {
 
     error_log("TCross: 查詢結果: " . ($tcross_record ? "找到記錄 ID: {$tcross_record->id}" : "未找到記錄"));
 
+    // 如果找不到 TCross 記錄，自動創建一筆（補資料處理）
     if (!$tcross_record) {
-        // 收集調試信息
-        $debug_info = array();
-        $debug_info[] = "查詢參數 - Elementor ID: {$params['submission_id']}, User ID: {$params['user_id']}";
-        $debug_info[] = "找到 " . count($all_records) . " 筆 TCross 記錄";
-
-        foreach ($all_records as $i => $record) {
-            $debug_info[] = "記錄 " . ($i+1) . ": ID={$record->id}, submitted_by_user_id={$record->submitted_by_user_id}, status={$record->submission_status}";
-        }
+        error_log("TCross: 未找到 TCross 記錄，嘗試自動創建");
 
         // 檢查 Elementor 記錄
         $elementor_record = $wpdb->get_row($wpdb->prepare(
@@ -1337,16 +1331,55 @@ public function update_submission_status() {
             $params['submission_id']
         ));
 
-        if ($elementor_record) {
-            $debug_info[] = "Elementor 記錄存在: user_id={$elementor_record->user_id}, post_id={$elementor_record->post_id}";
-        } else {
-            $debug_info[] = "Elementor 記錄不存在";
+        if (!$elementor_record) {
+            wp_send_json_error('找不到對應的 Elementor 提交記錄 ID: ' . $params['submission_id']);
+            return;
         }
 
-        $debug_message = "調試信息:\n" . implode("\n", $debug_info);
+        // 根據 post_id 判斷用戶類型
+        $user_type = null;
+        if ($elementor_record->post_id == 1254) {
+            $user_type = 'green_teacher';
+        } elseif ($elementor_record->post_id == 1325) {
+            $user_type = 'demand_unit';
+        } else {
+            wp_send_json_error('未知的表單類型 post_id: ' . $elementor_record->post_id);
+            return;
+        }
 
-        wp_send_json_error($debug_message);
-        return;
+        // 自動創建 TCross 記錄
+        error_log("TCross: 自動創建記錄 - Elementor ID: {$params['submission_id']}, User ID: {$elementor_record->user_id}, Type: {$user_type}");
+
+        try {
+            $new_tcross_id = TCrossUserStatus::createSubmissionRecord(
+                $params['submission_id'],
+                $user_type,
+                $elementor_record->user_id,
+                'initial',
+                null
+            );
+
+            if (!$new_tcross_id) {
+                wp_send_json_error('自動創建 TCross 記錄失敗');
+                return;
+            }
+
+            error_log("TCross: 成功創建記錄 ID: {$new_tcross_id}");
+
+            // 重新查詢剛創建的記錄
+            $tcross_record = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $tcross_table WHERE id = %d",
+                $new_tcross_id
+            ));
+
+            if (!$tcross_record) {
+                wp_send_json_error('創建記錄後無法查詢到該記錄');
+                return;
+            }
+        } catch (Exception $e) {
+            wp_send_json_error('創建 TCross 記錄時發生異常: ' . $e->getMessage());
+            return;
+        }
     }
 
     $reviewed_by = get_current_user_id();
